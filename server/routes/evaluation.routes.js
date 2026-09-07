@@ -9,18 +9,18 @@ const { saveInterview } = require("../services/interview.service");
 router.post(
   "/evaluate-interview",
   async (req, res) => {
-    try {
-      const {
-        role,
-        experience,
-        type,
-        numberOfQuestions,
-        questions,
-        answers,
-        resumeText,
-        resumeAnalysis,
-      } = req.body;
+    const {
+      role,
+      experience,
+      type,
+      numberOfQuestions,
+      questions,
+      answers,
+      resumeText,
+      resumeAnalysis,
+    } = req.body;
 
+    try {
       // --------------------------------------
       // Validation
       // --------------------------------------
