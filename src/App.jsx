@@ -615,6 +615,9 @@ if (page === "history") {
                         `${API_BASE_URL}/api/interviews`,
                         {
                           method: "DELETE",
+                          headers: {
+                            "X-Confirm-Clear": "clear-all",
+                          },
                         }
                       );
 
