@@ -8,10 +8,10 @@ const { cleanJsonResponse, isPlainObject, asArray, asText, asTextArray, hasPdfSi
 const { generateFallbackQuestions, generateFallbackEvaluation, generateFallbackResumeAnalysis } = require("./utils/fallbacks");
 const { TEST_AI_PROMPT, buildQuestionsPrompt, buildEvaluationPrompt, buildResumeAnalysisPrompt } = require("./services/prompts");
 const { initGemini, generateWithRetry } = require("./services/gemini.service");
+const { initPdfParse, parseBuffer, extractText, destroyParser } = require("./services/pdf.service");
 
 dotenv.config();
 
-let pdfParse;
 
 // ==========================================
 // INITIALIZE SERVER
@@ -20,8 +20,7 @@ let pdfParse;
 async function initializeServer() {
   try {
     await connectDB();
-    const pdfParseModule = await import("pdf-parse");
-    pdfParse = pdfParseModule.PDFParse;
+    await initPdfParse();
 
     const app = express();
 
@@ -533,15 +532,8 @@ Generate questions based only on:
           // Extract PDF text
           // --------------------------------------
 
-          parser = new pdfParse({
-            data: req.file.buffer,
-          });
-
-          const pdfData =
-            await parser.getText();
-
-          const resumeText =
-            pdfData.text.trim();
+          const { parser, text: resumeText } =
+            await parseBuffer(req.file.buffer);
 
           if (!resumeText) {
             return res.status(400).json({
@@ -612,11 +604,8 @@ Generate questions based only on:
 
           try {
             if (parser) {
-              const fallbackPdfData =
-                await parser.getText();
-
               fallbackResumeText =
-                fallbackPdfData.text.trim();
+                await extractText(parser);
             }
           } catch (fallbackError) {
             console.error(
@@ -655,16 +644,7 @@ Generate questions based only on:
           // Destroy PDF parser safely
           // --------------------------------------
 
-          if (parser) {
-            try {
-              await parser.destroy();
-            } catch (destroyError) {
-              console.error(
-                "PDF parser cleanup error:",
-                destroyError
-              );
-            }
-          }
+          await destroyParser(parser);
         }
       }
     );
