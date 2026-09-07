@@ -3,7 +3,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const multer = require("multer");
 const connectDB = require("./config/db");
-const Interview = require("./models/Interview");
+const { saveInterview, getInterviewHistory, clearInterviewHistory } = require("./services/interview.service");
 const { cleanJsonResponse, isPlainObject, asArray, asText, asTextArray, hasPdfSignature, normalizeScore, normalizeResumeAnalysis, normalizeEvaluation } = require("./utils/normalize");
 const { generateFallbackQuestions, generateFallbackEvaluation, generateFallbackResumeAnalysis } = require("./utils/fallbacks");
 const { TEST_AI_PROMPT, buildQuestionsPrompt, buildEvaluationPrompt, buildResumeAnalysisPrompt } = require("./services/prompts");
@@ -427,7 +427,7 @@ Generate questions based only on:
             questions
           );
 
-          await Interview.create({
+          await saveInterview({
               role,
               experience,
               interviewType: type,
@@ -466,7 +466,7 @@ Generate questions based only on:
               role || ""
             );
 
-            await Interview.create({
+            await saveInterview({
               role,
               experience,
               interviewType: type,
@@ -696,8 +696,7 @@ Generate questions based only on:
 
     app.get("/api/interviews", async (req, res) => {
         try {
-        const interviews = await Interview.find()
-          .sort({ createdAt: -1 });
+        const interviews = await getInterviewHistory();
 
         return res.json({
               success: true,
@@ -715,7 +714,7 @@ Generate questions based only on:
 
       app.delete("/api/interviews", async (req, res) => {
           try {
-            await Interview.deleteMany({});
+            await clearInterviewHistory();
 
             return res.json({
               success: true,
