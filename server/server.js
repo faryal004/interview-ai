@@ -2,6 +2,8 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const multer = require("multer");
+const connectDB = require("./config/db");
+const Interview = require("./models/Interview");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 dotenv.config();
@@ -14,6 +16,7 @@ let pdfParse;
 
 async function initializeServer() {
   try {
+    await connectDB();
     const pdfParseModule = await import("pdf-parse");
     pdfParse = pdfParseModule.PDFParse;
 
@@ -1391,9 +1394,12 @@ Return ONLY valid JSON.
           const {
             role,
             experience,
+            type,
+            numberOfQuestions,
             questions,
             answers,
             resumeText,
+            resumeAnalysis,
           } = req.body;
 
           // --------------------------------------
@@ -1552,6 +1558,20 @@ Return ONLY valid JSON.
             questions
           );
 
+          await Interview.create({
+              role,
+              experience,
+              interviewType: type,
+              numberOfQuestions,
+              resume: {
+                text: resumeText || "",
+                analysis: resumeAnalysis || null,
+              },
+              questions,
+              answers,
+              evaluation,
+            });
+
           return res.json({
             success: true,
             evaluation,
@@ -1572,10 +1592,25 @@ Return ONLY valid JSON.
 
           const fallbackEvaluation =
             generateFallbackEvaluation(
-              req.body.questions || [],
-              req.body.answers || [],
-              req.body.role || ""
+              questions || [],
+              answers || [],
+              role || ""
             );
+
+            await Interview.create({
+              role,
+              experience,
+              interviewType: type,
+              numberOfQuestions,
+              resume: {
+                text: resumeText || "",
+              },
+              analysis: resumeAnalysis || null,
+              questions,
+              answers,
+              evaluation: fallbackEvaluation,
+            });
+
 
           return res.json({
             success: true,
@@ -1945,6 +1980,43 @@ Do not use code fences.
       }
     );
 
+    app.get("/api/interviews", async (req, res) => {
+        try {
+        const interviews = await Interview.find()
+          .sort({ createdAt: -1 });
+
+        return res.json({
+              success: true,
+              interviews,
+              });
+            } catch (error) {
+              console.error("Fetch interview history error:", error);
+
+              return res.status(500).json({
+                success: false,
+                error: "Failed to fetch interview history.",
+              });
+            }
+          });
+
+      app.delete("/api/interviews", async (req, res) => {
+          try {
+            await Interview.deleteMany({});
+
+            return res.json({
+              success: true,
+              message: "Interview history cleared successfully.",
+            });
+          } catch (error) {
+            console.error("Clear interview history error:", error);
+
+            return res.status(500).json({
+              success: false,
+              error: "Failed to clear interview history.",
+            });
+          }
+        });
+
     // ==========================================
     // START SERVER
     // ==========================================
@@ -1984,3 +2056,4 @@ Do not use code fences.
 // ==========================================
 
 initializeServer();
+   
