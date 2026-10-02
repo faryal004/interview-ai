@@ -1,39 +1,29 @@
-let pdfParse = null;
+
+const pdfParse = require("pdf-parse");
 
 async function initPdfParse() {
-  const pdfParseModule = await import("pdf-parse");
-  pdfParse = pdfParseModule.PDFParse;
+  // Verify that the PDF parser is available.
+  if (typeof pdfParse !== "function") {
+    throw new Error("PDF parser failed to initialize.");
+  }
 }
 
 async function parseBuffer(buffer) {
-  const parser = new pdfParse({
-    data: buffer,
-  });
-
-  const pdfData = await parser.getText();
+  const pdfData = await pdfParse(buffer);
+  const text = (pdfData.text || "").trim();
 
   return {
-    parser,
-    text: pdfData.text.trim(),
+    parser: { text },
+    text,
   };
 }
 
 async function extractText(parser) {
-  const pdfData = await parser.getText();
-  return pdfData.text.trim();
+  return (parser?.text || "").trim();
 }
 
 async function destroyParser(parser) {
-  if (parser) {
-    try {
-      await parser.destroy();
-    } catch (destroyError) {
-      console.error(
-        "PDF parser cleanup error:",
-        destroyError
-      );
-    }
-  }
+  // pdf-parse v1 does not require parser instance cleanup.
 }
 
 module.exports = {
