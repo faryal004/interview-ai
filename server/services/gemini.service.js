@@ -43,10 +43,12 @@ function isRetryableGeminiError(error) {
 
 async function generateWithRetry(
   prompt,
-  maxRetries = 3
+  maxRetries = 3,
+  generationConfig = {}
 ) {
   const model = genAI.getGenerativeModel({
     model: "gemini-3.6-flash",
+    generationConfig,
   });
 
   let lastError;

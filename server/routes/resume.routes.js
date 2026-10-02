@@ -77,11 +77,15 @@ router.post(
       // Gemini request
       // --------------------------------------
 
-      const result =
-        await generateWithRetry(
-          prompt,
-          3
-        );
+      const result = await generateWithRetry(
+        prompt,
+        1,
+        {
+          responseMimeType: "application/json",
+          temperature: 0.2,
+          maxOutputTokens: 2500,
+        }
+      );
 
       const text =
         result.response.text();
