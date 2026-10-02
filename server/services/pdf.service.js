@@ -2,7 +2,6 @@
 const pdfParse = require("pdf-parse");
 
 async function initPdfParse() {
-  // Verify that the PDF parser is available.
   if (typeof pdfParse !== "function") {
     throw new Error("PDF parser failed to initialize.");
   }
@@ -23,7 +22,7 @@ async function extractText(parser) {
 }
 
 async function destroyParser(parser) {
-  // pdf-parse v1 does not require parser instance cleanup.
+  // No cleanup required for pdf-parse v1.
 }
 
 module.exports = {
