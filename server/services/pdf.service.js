@@ -1,8 +1,4 @@
-import DOMMatrix from 'dommatrix';
 
-if (typeof global.DOMMatrix === 'undefined') {
-  global.DOMMatrix = DOMMatrix;
-}
 const pdfParse = require("pdf-parse");
 
 async function initPdfParse() {
