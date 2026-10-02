@@ -47,7 +47,7 @@ async function generateWithRetry(
   generationConfig = {}
 ) {
   const model = genAI.getGenerativeModel({
-    model: "gemini-3.6-flash",
+    model: "gemini-3.5-flash",
     generationConfig,
   });
 
