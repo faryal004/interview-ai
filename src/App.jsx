@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState, useRef } from "react";
 import "./App.css";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "";
 
 function App() {
   const [page, setPage] = useState("home");
@@ -31,15 +30,7 @@ function App() {
   const [evaluation, setEvaluation] = useState(null);
   const [evaluationError, setEvaluationError] = useState("");
   const [completedAnswers, setCompletedAnswers] = useState([]);
-  const [interviewHistory, setInterviewHistory] = useState(() => {
-      try {
-        const savedHistory = localStorage.getItem("interviewHistory");
-        return savedHistory ? JSON.parse(savedHistory) : [];
-      } catch (error) {
-        console.error("History load error:", error);
-        return [];
-      }
-    });
+  const [interviewHistory, setInterviewHistory] = useState([]);
   const [loadingEvaluation, setLoadingEvaluation] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef(null);
@@ -50,6 +41,51 @@ function App() {
     interviewData.role === "Other / Custom Role"
       ? customRole.trim()
       : interviewData.role;
+
+      useEffect(() => {
+  const loadInterviewHistory = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/interviews`);
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to load interview history");
+      }
+
+      const formattedHistory = data.interviews.map((item) => ({
+        id: item._id,
+        date: item.createdAt
+          ? new Date(item.createdAt).toLocaleString()
+          : "",
+
+        role: item.role,
+        experience: item.experience,
+        type: item.interviewType,
+
+        overallScore: item.evaluation?.overallScore ?? 0,
+        technicalScore: item.evaluation?.technicalScore ?? 0,
+        communicationScore: item.evaluation?.communicationScore ?? 0,
+        answerQualityScore: item.evaluation?.answerQualityScore ?? 0,
+
+        summary: item.evaluation?.summary || "",
+        recommendation: item.evaluation?.recommendation || "",
+
+        strengths: item.evaluation?.strengths || [],
+        areasToImprove: item.evaluation?.areasToImprove || [],
+        questionFeedback: item.evaluation?.questionFeedback || [],
+
+        questions: item.questions || [],
+        answers: item.answers || [],
+      }));
+
+      setInterviewHistory(formattedHistory);
+    } catch (error) {
+      console.error("MongoDB history load error:", error);
+    }
+  };
+
+  loadInterviewHistory();
+}, []);
 
   const asArray = (value) => (Array.isArray(value) ? value : []);
 
@@ -282,14 +318,7 @@ const toggleVoiceInput = () => {
   };
 
   setInterviewHistory((previousHistory) => {
-    const updatedHistory = [historyItem, ...previousHistory];
-
-    localStorage.setItem(
-      "interviewHistory",
-      JSON.stringify(updatedHistory)
-    );
-
-    return updatedHistory;
+     return [historyItem, ...previousHistory];
   });
 };
 
@@ -317,9 +346,12 @@ const evaluateInterview = async (finalAnswers) => {
         body: JSON.stringify({
           role: getEffectiveRole(),
           experience: interviewData.experience,
+          type: interviewData.type,
+          numberOfQuestions: interviewData.questions,
           questions,
           answers: submittedAnswers,
           resumeText: resumeText,
+          resumeAnalysis: resumeAnalysis,
         }),
       }
     );
@@ -412,6 +444,8 @@ if (page === "history") {
           )
         )
       : 0;
+
+      
 
   return (
     <div className="history-page">
@@ -569,14 +603,36 @@ if (page === "history") {
 
               <button
                 className="secondary-button"
-                onClick={() => {
+                onClick={async () => {
                   if (
                     window.confirm(
                       "Are you sure you want to clear all interview history?"
                     )
                   ) {
-                    localStorage.removeItem("interviewHistory");
-                    setInterviewHistory([]);
+                    try {
+                      const response = await fetch(
+                        `${API_BASE_URL}/api/interviews`,
+                        {
+                          method: "DELETE",
+                          headers: {
+                            "X-Confirm-Clear": "clear-all",
+                          },
+                        }
+                      );
+
+                      const data = await response.json();
+
+                      if (!response.ok || !data.success) {
+                        throw new Error(
+                          data.error || "Failed to clear interview history"
+                        );
+                      }
+
+                      setInterviewHistory([]);
+                    } catch (error) {
+                      console.error("Clear history error:", error);
+                      alert("Failed to clear interview history. Please try again.");
+                    }
                   }
                 }}
               >
